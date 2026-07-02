@@ -86,6 +86,12 @@ Workflow itself: 3/3 attack vectors protected (mutable tags, exposed secrets, op
 1. **Base image mutable tag** — `Dockerfile` used `FROM python:3.12-slim` (mutable tag). Registry could serve different bits under that tag = same class as unpinned actions. **✅ FIXED:** both `FROM` lines pinned to `python:3.12-slim@sha256:423ed6ab25b1921a477529254bfeeabf5855151dc2c3141699a1bfc852199fbf`. Verified with `docker build --no-cache`.
 2. **Dependencies not hash-pinned** — `requirements.txt` pinned versions but not hashes. `pip-audit` catches *known* CVEs, not a swapped/typo-squatted package. **✅ FIXED:** generated `requirements.lock` (451 lines, full transitive hashes) via `pip-compile --generate-hashes --allow-unsafe`. Dockerfile build stage + both CI jobs (`test`, `security`) now `pip install --require-hashes -r requirements.lock`. `pytest`/`pip-audit` resolve from the lock (removed redundant separate installs). `requirements.txt` = human source; regenerate the lock after editing it. Build verified every hash (`--no-cache`), YAML valid.
 
+## Correction 9 (CVE bumps — security gate caught real vulns)
+- **Trigger:** First real CI run failed at the `security` job — `pip-audit` found 3 advisories: flask 3.1.0 (GHSA-4grg-w6v8-c28g, GHSA-68rp-wp8r-4726), pytest 8.3.4 (GHSA-6w46-j5rx-g56g). Gate correctly blocked build + deploy.
+- **Fix:** Bumped flask→3.1.3, pytest→9.0.3 in requirements.txt; regenerated hash-locked requirements.lock. pip-audit clean, tests 6/6, image builds.
+- **Result:** Run 28603670121 — all 4 jobs green (security, test, build+push+attest, deploy). Proves the gate works end-to-end.
+- **Note:** `production` environment has no protection rules yet (auto-created bare); deploy stub ran in 3s. Add required reviewers to enforce the human gate.
+
 ## Validation & local verification
 - **YAML syntax** — `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/ci-cd.yml'))"` → VALID (parses clean).
 - **Deps install** — `pip install -r requirements.txt` → ok (flask, pytest, pip-audit).
