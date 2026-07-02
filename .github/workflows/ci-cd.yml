@@ -80,6 +80,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
 
+      - name: Compute lowercase image name
+        id: img
+        # GHCR requires a lowercase repository path; github.repository may contain uppercase.
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
       - name: Log in to GHCR
         # Only push on pushes to main, not on PRs (secrets restricted on forks).
         if: github.event_name == 'push'
@@ -95,7 +100,7 @@ jobs:
         with:
           context: .
           push: ${{ github.event_name == 'push' }}
-          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          tags: ${{ steps.img.outputs.name }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -104,7 +109,7 @@ jobs:
         if: github.event_name == 'push'
         uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2 # v2.2.3
         with:
-          subject-name: ghcr.io/${{ github.repository }}
+          subject-name: ${{ steps.img.outputs.name }}
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
@@ -125,5 +130,6 @@ jobs:
 
       - name: Deploy
         run: |
-          echo "Deploying ghcr.io/${{ github.repository }}:${{ github.sha }} to production"
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}"
+          echo "Deploying ${IMAGE} to production"
           # Replace with real deploy: kubectl / helm / ssh / cloud CLI.

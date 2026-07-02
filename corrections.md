@@ -33,7 +33,7 @@ Document three changes you made to the AI-generated CI/CD workflow and why.
 - **Attack vectors reviewed (supply-chain timeline): 3/3 protected** — mutable tags, exposed secrets, open permissions
 - **Security checklist: 7/7 pass.** NCSC Code of Practice: 3/4 principles mapped (P1 secure dev, P2 build env, P3 secure deploy).
 - **Verification:** YAML valid; pytest 6/6; docker build (`--no-cache`) verifies base digest + all dep hashes.
-- **Open item:** `github.repository` lowercase for GHCR/attestation if org/repo has uppercase.
+- **Open item RESOLVED (C8):** owner `iNileshW` has uppercase → GHCR would reject. Added `Compute lowercase image name` step (`${GITHUB_REPOSITORY,,}`) in `build`; `tags` + attestation `subject-name` use it. `deploy` echo lowercased inline too.
 
 ---
 
